@@ -1,32 +1,39 @@
 require("dotenv").config();
+
 const app = require("./app");
 const { connectDB } = require("./src/config/database");
 const logger = require("./src/utils/logger");
 
-const PORT = process.env.PORT || 5000;
+// ✅ Cloud Run requires PORT=8080
+const PORT = process.env.PORT || 8080;
 
-const startServer = async () => {
-  try {
-    await connectDB();
-    app.listen(PORT, () => {
-      logger.info(`🚀 ElectEd AI Server running on port ${PORT}`);
-      logger.info(`📌 Environment: ${process.env.NODE_ENV}`);
-    });
-  } catch (error) {
-    logger.error("Failed to start server:", error);
-    process.exit(1);
-  }
-};
+// ─── START SERVER (NON-BLOCKING) ─────────────────────────────
+app.listen(PORT, "0.0.0.0", () => {
+  logger.info(`🚀 ElectEd AI Server running on port ${PORT}`);
+  logger.info(`📌 Environment: ${process.env.NODE_ENV || "development"}`);
+});
 
-startServer();
+// ─── DATABASE CONNECTION (NON-BLOCKING) ──────────────────────
+connectDB()
+  .then(() => {
+    logger.info("✅ MongoDB connected");
+  })
+  .catch((error) => {
+    logger.error("❌ MongoDB connection failed:", error);
+    // Do NOT crash app — Cloud Run must stay alive
+  });
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received. Shutting down gracefully...");
-  process.exit(0);
+// ─── HEALTH LOG (OPTIONAL DEBUG) ─────────────────────────────
+process.on("uncaughtException", (err) => {
+  logger.error("💥 Uncaught Exception:", err);
 });
 
 process.on("unhandledRejection", (reason) => {
-  logger.error("Unhandled Rejection:", reason);
-  process.exit(1);
+  logger.error("⚠️ Unhandled Rejection:", reason);
+});
+
+// ─── GRACEFUL SHUTDOWN ───────────────────────────────────────
+process.on("SIGTERM", () => {
+  logger.info("🛑 SIGTERM received. Shutting down gracefully...");
+  process.exit(0);
 });
