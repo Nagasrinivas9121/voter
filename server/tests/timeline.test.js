@@ -1,9 +1,9 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
-const app = require("../../app");
+const app = require("../app");
 
 // Mock Gemini service to avoid real API calls during tests
-jest.mock("../../src/services/geminiService", () => ({
+jest.mock("../src/services/geminiService", () => ({
   sendMessage: jest.fn().mockResolvedValue({
     content: "Test AI response about Indian elections",
     model: "gemini-1.5-flash",

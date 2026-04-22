@@ -1,7 +1,7 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
-const app = require("../../app");
+const app = require("../app");
 const User = require("../src/models/User");
 
 // Helper to generate a test token
@@ -20,12 +20,20 @@ beforeAll(async () => {
   testAdmin = await User.create({
     displayName: "Admin Test",
     email: "admin@test.com",
-    firebaseId: "fb-admin-123",
+    firebaseUid: "fb-admin-123",
     role: "admin"
   });
 
   adminToken = generateTestToken({ id: testAdmin._id, admin: true });
-  userToken = generateTestToken({ id: new mongoose.Types.ObjectId(), admin: false });
+
+  // Create a real non-admin user so the token resolves in auth middleware
+  const testUser = await User.create({
+    displayName: "Regular User",
+    email: "user@test.com",
+    firebaseUid: "fb-user-456",
+    role: "user"
+  });
+  userToken = generateTestToken({ id: testUser._id, admin: false });
 });
 
 afterAll(async () => {

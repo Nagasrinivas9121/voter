@@ -1,9 +1,9 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
-const app = require("../../app");
+const app = require("../app");
 
 // Mock Firebase Admin
-jest.mock("../../src/config/firebase", () => ({
+jest.mock("../src/config/firebase", () => ({
   verifyFirebaseToken: jest.fn().mockResolvedValue({
     uid: "firebase_test_uid",
     email: "test@example.com",

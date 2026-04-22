@@ -1,8 +1,8 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
-const app = require("../../app");
+const app = require("../app");
 
-jest.mock("../../src/config/firebase", () => ({
+jest.mock("../src/config/firebase", () => ({
   verifyFirebaseToken: jest.fn().mockResolvedValue({
     uid: "firebase_chat_uid",
     email: "chatuser@example.com",
@@ -12,7 +12,7 @@ jest.mock("../../src/config/firebase", () => ({
   initFirebase: jest.fn(),
 }));
 
-jest.mock("../../src/services/geminiService", () => ({
+jest.mock("../src/services/geminiService", () => ({
   sendMessage: jest.fn().mockResolvedValue({
     content: "To vote in India, you need to be 18+ and a registered voter...",
     model: "gemini-1.5-flash",
