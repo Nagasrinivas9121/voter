@@ -19,7 +19,9 @@ ENV NODE_ENV=production
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Healthcheck for local testing (Cloud Run has its own probes)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-CMD ["node", "server.js"]
+# Start using npm to follow user preference and ensure scripts are run
+CMD ["npm", "start"]

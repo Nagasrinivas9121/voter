@@ -8,9 +8,15 @@ const logger = require("./src/utils/logger");
 const PORT = process.env.PORT || 8080;
 
 // ─── START SERVER (NON-BLOCKING) ─────────────────────────────
-app.listen(PORT, "0.0.0.0", () => {
-  logger.info(`🚀 ElectEd AI Server running on port ${PORT}`);
+const server = app.listen(PORT, "0.0.0.0", () => {
+  logger.info(`🚀 ElectEd AI Server successfully started on port ${PORT}`);
+  logger.info(`📌 Target binding: 0.0.0.0:${PORT}`);
   logger.info(`📌 Environment: ${process.env.NODE_ENV || "development"}`);
+});
+
+server.on('error', (err) => {
+  logger.error("❌ Server failed to start:", err);
+  process.exit(1);
 });
 
 // ─── DATABASE CONNECTION (NON-BLOCKING) ──────────────────────

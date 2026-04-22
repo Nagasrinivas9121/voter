@@ -72,8 +72,10 @@ app.get("/health", (req, res) => {
   const dbStatus = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
   const memUsage = process.memoryUsage();
 
-  res.status(dbState === 1 ? 200 : 503).json({
-    status: dbState === 1 ? "healthy" : "degraded",
+  // For Cloud Run, the health check should return 200 if the process is alive.
+  // We report the database status but don't fail the probe unless the app itself is critical.
+  res.status(200).json({
+    status: "healthy",
     app: "ElectEd AI",
     version: "1.0.0",
     timestamp: new Date().toISOString(),
