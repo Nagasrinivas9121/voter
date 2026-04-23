@@ -1,18 +1,17 @@
 const { createLogger, format, transports } = require("winston");
 
-const { combine, timestamp, printf, colorize, errors } = format;
+const { combine, timestamp, json, errors, colorize, printf } = format;
 
-const logFormat = printf(({ level, message, timestamp, stack }) => {
+const consoleFormat = printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level}]: ${stack || message}`;
 });
 
 const logger = createLogger({
-  level: process.env.NODE_ENV === "production" ? "warn" : "debug",
+  level: process.env.NODE_ENV === "production" ? "info" : "debug",
   format: combine(
-    colorize(),
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     errors({ stack: true }),
-    logFormat
+    process.env.NODE_ENV === "production" ? json() : combine(colorize(), consoleFormat)
   ),
   transports: [
     new transports.Console(),
@@ -27,3 +26,4 @@ const logger = createLogger({
 });
 
 module.exports = logger;
+

@@ -1,6 +1,7 @@
 const ChatSession = require("../models/ChatSession");
 const User = require("../models/User");
 const geminiService = require("../services/geminiService");
+const bigQueryService = require("../services/bigQueryService");
 const { asyncHandler } = require("../middleware/errorHandler");
 const logger = require("../utils/logger");
 
@@ -69,7 +70,12 @@ const sendMessage = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(userId, { $inc: { totalChats: 1 } });
   }
 
+  // Asynchronous logging to BigQuery (don't await to keep response fast)
+  bigQueryService.logChatMetadata(userId, aiResponse.tokens, aiResponse.responseTime)
+    .catch(err => logger.error("BigQuery log error", err));
+
   res.status(200).json({
+
     success: true,
     sessionId: session._id,
     message: {
