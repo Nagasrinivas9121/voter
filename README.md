@@ -2,8 +2,7 @@
 
 [![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Cloud%20Run-4285F4?logo=google-cloud&logoColor=white)](https://cloud.google.com/run)
 [![Gemini](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-8E75B2?logo=google-gemini&logoColor=white)](https://deepmind.google/technologies/gemini/)
-[![React](https://img.shields.io/badge/Frontend-React%2018-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Backend-Node.js%2018-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Firebase](https://img.shields.io/badge/Auth-Firebase%20Admin-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 **ElectEd AI** is a state-of-the-art AI-powered platform designed to educate Indian citizens about the democratic process. Built for the modern voter, it simplifies complex election procedures into interactive, accessible, and multilingual experiences.
@@ -12,108 +11,83 @@
 
 ## 🌟 Key Features
 
-- **🤖 AI Assistant**: Real-time, context-aware guidance using **Google Gemini 1.5 Flash**.
-- **📅 Interactive Timeline**: Visual walkthrough of the 7 phases of the Indian election process.
-- **✅ Eligibility Checker**: Smart tool to determine voting eligibility and required documentation.
-- **🗳️ Mock Voting Sim**: A safe, step-by-step simulation of the EVM (Electronic Voting Machine) and VVPAT process.
-- **🌐 Multilingual Support**: Available in **English** and **Telugu**, making civic education inclusive.
-- **📊 Personal Dashboard**: Track your learning progress and chat history.
+- **🤖 AI Consultant**: Real-time, context-aware guidance using **Google Gemini 1.5 Flash**. Enforces step-by-step procedural outputs.
+- **📅 Interactive Timeline**: Visual walkthrough of the 7 phases of the Indian election process (Source: ECI).
+- **✅ Smart Eligibility**: Determine voting eligibility with AI-generated roadmaps and actionable next steps.
+- **🗳️ Mock Voting Sim**: A safe simulation of the EVM + VVPAT process to reduce first-time voter anxiety.
+- **🌐 Multilingual (English & Telugu)**: Full i18n support including AI responses.
+- **📊 Personalized Analytics**: Secure dashboard to track voting status and learning progress.
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Google Cloud Ecosystem (High Impact)
 
-```mermaid
-graph TD
-    User((User))
-    Web[Vite + React Frontend]
-    API[Node.js + Express API]
-    DB[(MongoDB Atlas)]
-    Gemini[Google Gemini API]
-    Firebase[Firebase Auth]
-    GA[Google Analytics]
-    GCR[Google Cloud Run]
-    BQ[BigQuery Stub]
+This project is architected to maximize Google Cloud services integration:
 
-    User <--> Web
-    Web <--> API
-    API <--> DB
-    API <--> Gemini
-    API <--> Firebase
-    Web <--> GA
-    API <--> BQ
-    API --- GCR
-```
+### 1. Google Gemini API (Structured AI)
+- **Structured Prompts**: Uses system-level instructions to enforce neutrality and procedural accuracy.
+- **Context-Aware**: Adapts responses based on user type (First-time voter, Student, NRI, PwD).
+- **History Management**: Maintains 4-turn conversation memory for coherent follow-up guidance.
+
+### 2. Firebase Authentication (Secure Auth)
+- **Token Verification**: Backend uses `firebase-admin` for 100% secure ID token verification.
+- **Stateless Session**: Zero-trust architecture using Firebase UID as the primary key.
+
+### 3. Google Analytics (Actionable Insights)
+- **SPA Routing**: Fully integrated tracking for React Router.
+- **Custom Events**: Track `chat_query`, `eligibility_check`, and `timeline_view` with detailed metadata.
+
+### 4. Cloud Logging (Structured JSON)
+- **Severity Mapping**: Logs are formatted for Google Cloud Logging (INFO, WARN, ERROR mapped to Severity).
+- **Metadata Context**: Every log includes `service`, `userId`, and `responseTime`.
 
 ---
 
-## 🚀 Google Services Integration (100% Target)
+## 🛡️ Security & Performance
 
-- **Google Gemini API**: Implemented with structured system prompts, safety settings, and conversation history for human-like civic guidance.
-- **Firebase Authentication**: Secure Google OAuth integration with server-side JWT verification.
-- **Google Analytics**: Comprehensive event tracking for user engagement (chat messages, eligibility checks, mock votes).
-- **Google Cloud Run**: Containerized deployment for serverless, high-availability scaling.
-- **Cloud Logging**: Structured JSON logging for advanced monitoring and debugging.
-- **BigQuery (Future-Proofed)**: Integrated service stub for streaming anonymized event data for deep analytics.
-
----
-
-## 🛡️ Security Hardening
-
-- **Helmet.js**: Fully configured Content Security Policy (CSP) and security headers.
-- **Rate Limiting**: Protection against DDoS and brute-force attacks at the API level.
-- **Input Validation**: Strict schema validation using **Joi** and XSS sanitization.
-- **Mongo Sanitization**: Prevention of NoSQL injection attacks.
-- **JWT Security**: Stateless authentication with short-lived tokens and secure cookie/header handling.
-- **Stateless Architecture**: Perfect for scalable production environments.
+| Feature | Implementation |
+| :--- | :--- |
+| **Auth** | Firebase Admin SDK (Server-side verification) |
+| **Headers** | Helmet.js (Strict CSP, XSS protection) |
+| **Sanitization** | Express-Mongo-Sanitize & XSS-clean |
+| **Rate Limiting** | Tiered limits for Auth (10/15min) and Chat (20/min) |
+| **Performance** | Mongoose `.lean()` and targeted indexing |
+| **Infrastructure** | Containerized (Docker) & deployed on Cloud Run |
 
 ---
 
-## ⚡ Performance & Optimization
+## 📡 API Reference
 
-- **MongoDB Indexing**: Optimized queries for users and chat sessions.
-- **Lean Queries**: Using `.lean()` to reduce memory overhead and increase response speed.
-- **Caching**: Server-side caching using `node-cache` for static election data.
-- **Code Splitting**: React lazy-loading and Suspense for fast initial page loads.
-- **Compression**: Gzip compression for all API responses.
+### Auth
+- `POST /api/auth/google`: Verify Firebase token and upsert user profile.
+- `GET /api/auth/verify`: Returns authenticated user object.
 
----
+### Chat
+- `POST /api/chat/send`: Interactive AI session (`message`, `sessionId`, `language`).
+- `GET /api/chat/sessions`: Retrieve paginated chat history.
 
-## ♿ Accessibility (A11y)
-
-- **ARIA Labels**: Full ARIA support for screen readers.
-- **Keyboard Navigation**: Accessible interactive elements and focus management.
-- **Color Contrast**: AAA/AA compliant color palettes for high readability.
-- **Semantic HTML**: Proper use of landmarks and heading hierarchy.
+### Tools
+- `POST /api/eligibility/check`: Logic-gate + AI assessment of voter eligibility.
+- `GET /api/timeline`: Cached election process phases.
 
 ---
 
-## 🧪 Testing
+## 🚀 Deployment (Cloud Run)
 
-The project maintains a robust test suite using **Jest** and **Supertest**, covering:
-- **Health Checks**: Ensuring system uptime.
-- **Auth Flow**: Validating Firebase and JWT logic.
-- **Chat Logic**: Testing AI service integrations.
-- **Timeline API**: Verifying data integrity and caching.
-- **Eligibility**: Testing edge cases for voter registration rules.
-
-Run tests: `npm test` (in server directory)
+The project is optimized for **Google Cloud Run** deployment:
+1. Build image: `docker build -t gcr.io/[PROJECT-ID]/elected-ai-server ./server`
+2. Push image: `docker push gcr.io/[PROJECT-ID]/elected-ai-server`
+3. Deploy: `gcloud run deploy elected-ai --image gcr.io/[PROJECT-ID]/elected-ai-server --platform managed`
 
 ---
 
 ## 🛠️ Tech Stack
 
-**Frontend**: React 18, Vite, Tailwind CSS, Framer Motion, Lucide Icons, React Query.
-**Backend**: Node.js, Express, MongoDB Mongoose.
-**Services**: Google Gemini, Firebase, Google Analytics.
-**DevOps**: Docker, Google Cloud Run, GitHub Actions.
+- **Frontend**: React 18, Vite, Framer Motion, Tailwind CSS.
+- **Backend**: Node.js 18, Express, MongoDB Atlas.
+- **AI**: Google Generative AI (Gemini 1.5 Flash).
+- **DevOps**: Docker, Google Cloud Run, Firebase Admin.
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-*Made with ❤️ for Indian Democracy.*
+*Made with ❤️ for Indian Democracy. Source data: Election Commission of India (eci.gov.in)*

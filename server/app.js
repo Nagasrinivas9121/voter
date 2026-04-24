@@ -2,11 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const compression = require("compression");
-const morgan = require("morgan");
 const mongoSanitize = require("express-mongo-sanitize");
+const mongoose = require("mongoose");
 
 const { errorHandler } = require("./src/middleware/errorHandler");
-const { generalLimiter } = require("./src/middleware/rateLimiter");
+const { generalLimiter, chatLimiter, authLimiter } = require("./src/middleware/rateLimiter");
+const logger = require("./src/utils/logger");
 
 // Routes
 const authRoutes = require("./src/routes/auth");
@@ -27,7 +28,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://www.googletagmanager.com"],
       },
     },
     crossOriginEmbedderPolicy: false,
@@ -54,43 +55,48 @@ app.use(
 // ─── Body Parsing & Sanitization ────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(mongoSanitize()); 
 app.use(compression());
 
-// ─── Logging ────────────────────────────────────────────────────────────────
-if (process.env.NODE_ENV !== "test") {
-  app.use(morgan("combined"));
-}
+// ─── Structured JSON Logging (Google Cloud) ─────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`, {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration,
+      ip: req.ip,
+      userAgent: req.get("user-agent"),
+      userId: req.user?._id,
+    });
+  });
+  next();
+});
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────────
 app.use("/api", generalLimiter);
 
 // ─── Health Check ───────────────────────────────────────────────────────────
-const mongoose = require("mongoose");
 app.get("/health", (req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbStatus = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
-  const memUsage = process.memoryUsage();
-
-  // For Cloud Run, the health check should return 200 if the process is alive.
-  // We report the database status but don't fail the probe unless the app itself is critical.
+  
   res.status(200).json({
     status: "healthy",
     app: "ElectEd AI",
-    version: "1.0.0",
+    version: "1.1.0",
     timestamp: new Date().toISOString(),
     uptime: `${Math.floor(process.uptime())}s`,
     database: dbStatus[dbState] || "unknown",
-    memory: {
-      rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
-      heap: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
-    },
   });
 });
 
 // ─── API Routes ─────────────────────────────────────────────────────────────
-app.use("/api/auth", authRoutes);
-app.use("/api/chat", chatRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/chat", chatLimiter, chatRoutes);
 app.use("/api/timeline", timelineRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/admin", adminRoutes);
@@ -98,10 +104,11 @@ app.use("/api/eligibility", eligibilityRoutes);
 
 // ─── 404 Handler ────────────────────────────────────────────────────────────
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: "Route not found" });
+  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
 
 // ─── Global Error Handler ────────────────────────────────────────────────────
 app.use(errorHandler);
 
 module.exports = app;
+

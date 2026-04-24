@@ -9,7 +9,8 @@ import TypingIndicator from "@components/TypingIndicator";
 import SuggestedPrompts from "@components/SuggestedPrompts";
 import { chatAPI } from "@services/api";
 import { useDebounce } from "@hooks/useDebounce";
-import { trackChatMessage, trackLanguageSwitch } from "@utils/analytics";
+import { trackChatQuery, trackLanguageSwitch } from "@utils/analytics";
+
 import toast from "react-hot-toast";
 
 export default function Chat() {
@@ -41,13 +42,21 @@ export default function Chat() {
   const handleSend = useCallback(
     (e) => {
       e?.preventDefault();
-      if (!input.trim() || isLoading) return;
-      sendMessage(input);
-      trackChatMessage();
+      const query = input.trim();
+      if (!query || isLoading) return;
+      
+      sendMessage(query);
+      trackChatQuery(query.length, language);
       setInput("");
+      
+      // Reset height of textarea
+      if (inputRef.current) {
+        inputRef.current.style.height = "auto";
+      }
     },
-    [input, isLoading, sendMessage]
+    [input, isLoading, sendMessage, language]
   );
+
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {

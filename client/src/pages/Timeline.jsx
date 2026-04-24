@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { timelineAPI } from "@services/api";
 import LoadingSpinner from "@components/LoadingSpinner";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import { trackTimelineView } from "@utils/analytics";
+
 
 export default function Timeline() {
   const [activePhase, setActivePhase] = useState(null);
@@ -80,7 +82,12 @@ export default function Timeline() {
 
                 {/* Card */}
                 <button
-                  onClick={() => setActivePhase(isActive ? null : phase.id)}
+                  onClick={() => {
+                    const willBeActive = !isActive;
+                    setActivePhase(willBeActive ? phase.id : null);
+                    if (willBeActive) trackTimelineView(phase.id);
+                  }}
+
                   className="w-full text-left glass-card-hover p-5 cursor-pointer"
                   aria-expanded={isActive}
                   aria-controls={`phase-details-${phase.id}`}

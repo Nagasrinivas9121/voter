@@ -1,7 +1,10 @@
-const jwt = require("jsonwebtoken");
+const { verifyFirebaseToken } = require("../config/firebase");
 const User = require("../models/User");
 const logger = require("../utils/logger");
 
+/**
+ * Middleware to authenticate requests using Firebase ID tokens
+ */
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -10,35 +13,46 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id).select("-__v").lean();
-    if (!user) {
-      return res.status(401).json({ success: false, message: "User not found" });
+    
+    // Verify token with Firebase
+    const decodedToken = await verifyFirebaseToken(token);
+    
+    if (!decodedToken) {
+      return res.status(401).json({ success: false, message: "Invalid or expired token" });
     }
+
+    // Find user in local DB by Firebase UID
+    const user = await User.findOne({ firebaseUid: decodedToken.uid }).select("-__v").lean();
+    
+    if (!user) {
+      // In a real hackathon project, you might want to auto-create the user here 
+      // if they authenticated with Firebase but aren't in your DB yet.
+      return res.status(401).json({ success: false, message: "User profile not found" });
+    }
+
     if (!user.isActive) {
       return res.status(403).json({ success: false, message: "Account is deactivated" });
     }
 
+    // Attach user and Firebase UID to request
     req.user = user;
+    req.firebaseUid = decodedToken.uid;
+    
+    // Add userId to logger context for structured logging
+    logger.defaultMeta = { ...logger.defaultMeta, userId: user._id.toString() };
+    
     next();
   } catch (error) {
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ success: false, message: "Token expired" });
-    }
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({ success: false, message: "Invalid token" });
-    }
-    logger.error("Auth middleware error:", error);
-    return res.status(500).json({ success: false, message: "Authentication error" });
+    logger.error("Auth middleware error:", { error: error.message, stack: error.stack });
+    return res.status(401).json({ 
+      success: false, 
+      message: error.code === 'auth/id-token-expired' ? "Token expired" : "Authentication failed" 
+    });
   }
 };
 
 const requireAdmin = (req, res, next) => {
-  // Check both the DB user role and the JWT "admin" claim
-  const isUserAdmin = req.user && (req.user.role === "admin" || req.user.admin === true);
-
-  if (!isUserAdmin) {
+  if (!req.user || req.user.role !== "admin") {
     logger.warn(`Unauthorized admin access attempt by: ${req.user?._id || "unknown"}`);
     return res.status(403).json({
       success: false,
@@ -55,8 +69,8 @@ const optionalAuth = async (req, res, next) => {
       return next();
     }
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).lean();
+    const decodedToken = await verifyFirebaseToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid }).lean();
     if (user) req.user = user;
     next();
   } catch {
@@ -65,3 +79,4 @@ const optionalAuth = async (req, res, next) => {
 };
 
 module.exports = { authenticate, requireAdmin, optionalAuth };
+

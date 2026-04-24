@@ -1,10 +1,11 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "@components/Navbar";
 import Footer from "@components/Footer";
 import LoadingSpinner from "@components/LoadingSpinner";
 import ProtectedRoute from "@components/ProtectedRoute";
 import { useAuth } from "@context/AuthContext";
+import { trackPageView } from "@utils/analytics";
 
 // Lazy-loaded pages for code splitting
 const Landing = lazy(() => import("@pages/Landing"));
@@ -17,12 +18,28 @@ const MockVoting = lazy(() => import("@pages/MockVoting"));
 const NotFound = lazy(() => import("@pages/NotFound"));
 
 function App() {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
+  const location = useLocation();
+
+  // ─── Google Analytics SPA Tracking ─────────────────────────────────────────
+  useEffect(() => {
+    const pagePath = location.pathname + location.search;
+    trackPageView(pagePath);
+    
+    // Also update gtag config with userId if available for cross-device tracking
+    if (user?.id && window.gtag) {
+      window.gtag('set', 'user_properties', {
+        user_id: user.id,
+        user_type: user.userType || 'general'
+      });
+    }
+  }, [location, user]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-900">
+      <div className="min-h-screen flex items-center justify-center bg-dark-900" aria-busy="true" aria-live="polite">
         <LoadingSpinner size="lg" />
+        <span className="sr-only">Loading ElectEd AI...</span>
       </div>
     );
   }
@@ -30,10 +47,10 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-1" role="main">
+      <main className="flex-1" role="main" id="main-content">
         <Suspense
           fallback={
-            <div className="min-h-[60vh] flex items-center justify-center">
+            <div className="min-h-[60vh] flex items-center justify-center" aria-hidden="true">
               <LoadingSpinner size="lg" />
             </div>
           }
@@ -78,3 +95,4 @@ function App() {
 }
 
 export default App;
+

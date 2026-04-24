@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { eligibilityAPI } from "@services/api";
 import { CheckCircle, XCircle, AlertCircle, ExternalLink, ArrowRight } from "lucide-react";
 import LoadingSpinner from "@components/LoadingSpinner";
+import { trackEligibilityCheck } from "@utils/analytics";
+
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat",
@@ -27,14 +29,22 @@ export default function EligibilityChecker() {
     }
     setIsLoading(true);
     try {
-      const res = await eligibilityAPI.check({
+      const payload = {
         age: parseInt(form.age),
         isIndianCitizen: form.isIndianCitizen,
         hasVoterID: form.hasVoterID,
         state: form.state,
+      };
+      const res = await eligibilityAPI.check(payload);
+      const resultData = res.data.data;
+      setResult(resultData);
+      
+      trackEligibilityCheck({
+        age: payload.age,
+        status: resultData.isEligible ? "eligible" : "not_eligible"
       });
-      setResult(res.data.data);
     } catch (err) {
+
       setError(err.response?.data?.message || "Something went wrong.");
     } finally {
       setIsLoading(false);
